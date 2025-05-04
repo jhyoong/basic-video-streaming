@@ -42,6 +42,10 @@ export default function SubfolderPage() {
     }
   }, [folder, subfolder]);
 
+  // Decode for display
+  const decodedFolder = decodeURIComponent(folder);
+  const decodedSubfolder = decodeURIComponent(subfolder);
+
   return (
     <div className="min-h-screen p-8 pb-20 gap-8 flex flex-col">
       <header className="flex items-center justify-between w-full border-b pb-4">
@@ -63,10 +67,10 @@ export default function SubfolderPage() {
       <main className="flex-1 w-full max-w-5xl mx-auto mt-8">
         <div className="flex items-center mb-6">
           <Link href={`/videos/${folder}`} className="text-blue-600 hover:underline mr-2">
-            ← Back to {decodeURIComponent(folder)}
+            ← Back to {decodedFolder}
           </Link>
           <h2 className="text-xl font-semibold capitalize">
-            {decodeURIComponent(subfolder)} Videos
+            {decodedSubfolder} Videos
           </h2>
         </div>
 
@@ -78,7 +82,7 @@ export default function SubfolderPage() {
           <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-lg">
             <p className="text-lg mb-4">No videos found in this subfolder</p>
             <p className="text-sm text-gray-500">
-              Add some video files to the public/videos/{folder}/{subfolder} directory
+              Add some video files to the public/videos/{decodedFolder}/{decodedSubfolder} directory
             </p>
           </div>
         ) : (
@@ -116,7 +120,7 @@ export default function SubfolderPage() {
                   </h3>
                   <div className="mt-4 flex justify-between items-center">
                     <Link 
-                      href={`/player/${encodeURIComponent(folder)}/${encodeURIComponent(subfolder)}/${encodeURIComponent(video.name)}`}
+                      href={`/player/${folder}/${subfolder}/${encodeURIComponent(video.name)}`}
                       className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
                     >
                       Play Video

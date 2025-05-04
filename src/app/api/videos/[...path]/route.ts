@@ -18,16 +18,15 @@ export async function GET(
   }
   
   try {
+    // Decode the URL segments for filesystem access
+    const decodedPathSegments = pathSegments.map(segment => decodeURIComponent(segment));
+    
     // Construct the path based on the number of segments
-    // For a main folder: ['nature']
-    // For a subfolder: ['nature', 'wildlife']
-    const relativePathSegments = ['public', 'videos', ...pathSegments];
+    const relativePathSegments = ['public', 'videos', ...decodedPathSegments];
     const folderPath = join(process.cwd(), ...relativePathSegments);
     
-    // Build the URL path for the videos
+    // Build the URL path for the videos - keep original path segments to preserve encoding
     const urlPathPrefix = `/videos/${pathSegments.join('/')}`;
-    
-    // Video file extensions we want to detect
     const videoExtensions = ['.mp4', '.webm', '.mov', '.avi', '.mkv'];
     
     // Get all files in the directory
@@ -38,7 +37,7 @@ export async function GET(
       )
       .map(file => ({
         name: file.name,
-        path: `${urlPathPrefix}/${file.name}`,
+        path: `${urlPathPrefix}/${encodeURIComponent(file.name)}`,
       }));
 
     // Return the files as JSON

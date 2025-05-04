@@ -41,6 +41,9 @@ export default function VideosInMainFolder() {
     }
   }, [folder]);
 
+  // Decode for display
+  const decodedFolder = decodeURIComponent(folder);
+
   return (
     <div className="min-h-screen p-8 pb-20 gap-8 flex flex-col">
       <header className="flex items-center justify-between w-full border-b pb-4">
@@ -62,10 +65,10 @@ export default function VideosInMainFolder() {
       <main className="flex-1 w-full max-w-5xl mx-auto mt-8">
         <div className="flex items-center mb-6">
           <Link href={`/videos/${folder}`} className="text-blue-600 hover:underline mr-2">
-            ← Back to {decodeURIComponent(folder)} Collections
+            ← Back to {decodedFolder} Collections
           </Link>
           <h2 className="text-xl font-semibold capitalize">
-            Videos in {decodeURIComponent(folder)}
+            Videos in {decodedFolder}
           </h2>
         </div>
 
@@ -77,7 +80,7 @@ export default function VideosInMainFolder() {
           <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-lg">
             <p className="text-lg mb-4">No videos found in this folder</p>
             <p className="text-sm text-gray-500">
-              Add some video files to the public/videos/{folder}/ directory
+              Add some video files to the public/videos/{decodedFolder}/ directory
             </p>
           </div>
         ) : (
@@ -115,7 +118,7 @@ export default function VideosInMainFolder() {
                   </h3>
                   <div className="mt-4 flex justify-between items-center">
                     <Link 
-                      href={`/player/${encodeURIComponent(folder)}/${encodeURIComponent(video.name)}`}
+                      href={`/player/${folder}/${encodeURIComponent(video.name)}`}
                       className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
                     >
                       Play Video

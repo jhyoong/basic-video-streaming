@@ -15,25 +15,24 @@ export default function VideoPlayer() {
   }
   
   // The last segment is always the video name
-  const videoName = path[path.length - 1];
-  const decodedVideoName = decodeURIComponent(videoName);
+  const videoName = decodeURIComponent(path[path.length - 1]);
   
   // Determine if we're in a main folder or subfolder
-  const folder = path[0];
-  const subfolder = path.length > 2 ? path[1] : null;
+  const folder = decodeURIComponent(path[0]);
+  const subfolder = path.length > 2 ? decodeURIComponent(path[1]) : null;
   
-  // Build the video path
+  // Build the video path - using original (encoded) path segments for URL
   const videoPath = `/videos/${path.join('/')}`;
   
   // Build the return path
   const returnPath = subfolder 
-    ? `/videos/${folder}/${subfolder}` 
-    : `/videos/${folder}`;
+    ? `/videos/${encodeURIComponent(folder)}/${encodeURIComponent(subfolder)}` 
+    : `/videos/${encodeURIComponent(folder)}`;
   
   // Display text for the collection
   const collectionText = subfolder 
-    ? `${decodeURIComponent(folder)} / ${decodeURIComponent(subfolder)}` 
-    : decodeURIComponent(folder);
+    ? `${folder} / ${subfolder}` 
+    : folder;
 
   return (
     <div className="min-h-screen flex flex-col bg-black text-white">
@@ -56,7 +55,7 @@ export default function VideoPlayer() {
             href={returnPath}
             className="text-sm text-blue-400 hover:underline"
           >
-            ← Back to {subfolder ? decodeURIComponent(subfolder) : decodeURIComponent(folder)}
+            ← Back to {subfolder ? subfolder : folder}
           </Link>
         </div>
       </header>
@@ -74,7 +73,7 @@ export default function VideoPlayer() {
             </video>
           </div>
           <div className="p-4">
-            <h1 className="text-xl font-semibold mb-2">{decodedVideoName}</h1>
+            <h1 className="text-xl font-semibold mb-2">{videoName}</h1>
             <p className="text-gray-400 text-sm mb-4">
               From collection: <span className="capitalize">{collectionText}</span>
             </p>

@@ -10,8 +10,11 @@ export async function GET(
   const folder = (await params).folder;
   
   try {
+    // Decode the folder name for filesystem access
+    const decodedFolder = decodeURIComponent(folder);
+    
     // The path to the specific folder
-    const folderPath = join(process.cwd(), 'public', 'videos', folder);
+    const folderPath = join(process.cwd(), 'public', 'videos', decodedFolder);
     
     // Video file extensions we want to detect
     const videoExtensions = ['.mp4', '.webm', '.mov', '.avi', '.mkv'];

@@ -11,8 +11,11 @@ export async function GET(
   const folder = (await params).folder;
   
   try {
+    // Decode the folder name for filesystem access
+    const decodedFolder = decodeURIComponent(folder);
+    
     // The path to the main folder
-    const folderPath = join(process.cwd(), 'public', 'videos', folder);
+    const folderPath = join(process.cwd(), 'public', 'videos', decodedFolder);
     
     // Read all directories under this folder
     const subfolders = readdirSync(folderPath, { withFileTypes: true })
@@ -20,8 +23,7 @@ export async function GET(
       .map(dirent => {
         const subfolderPath = join(folderPath, dirent.name);
         
-        // Count the number of video files in this subfolder
-        // Video file extensions we want to detect
+        // Count the number of accepted video files in this subfolder
         const videoExtensions = ['.mp4', '.webm', '.mov', '.avi', '.mkv'];
         let videoCount = 0;
         
@@ -38,7 +40,7 @@ export async function GET(
         
         return {
           name: dirent.name,
-          path: `/videos/${folder}/${dirent.name}`,
+          path: `/videos/${folder}/${encodeURIComponent(dirent.name)}`,
           videoCount
         };
       });
