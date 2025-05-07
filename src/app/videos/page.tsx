@@ -1,9 +1,10 @@
-// src/app/page.tsx
+// src/app/videos/page.tsx
 'use client';
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 
 interface VideoFolder {
   name: string;
@@ -12,50 +13,63 @@ interface VideoFolder {
   subfolderCount: number;
 }
 
-export default function Home() {
+export default function VideosPage() {
+  const searchParams = useSearchParams();
+  const isExternal = searchParams.get('source') === 'external';
+  const source = isExternal ? 'external' : 'internal';
+  const title = isExternal ? 'External Video Library' : 'Video Collections';
+  
   const [folders, setFolders] = useState<VideoFolder[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [hasExternalVideos, setHasExternalVideos] = useState(
-    process.env.HAS_EXTERNAL_VIDEOS === 'true'
-  );
 
   useEffect(() => {
     async function fetchVideoFolders() {
       try {
-        const response = await fetch('/api/video-folders');
+        const response = await fetch(`/api/video-folders?source=${source}`);
         if (!response.ok) {
-          throw new Error('Failed to fetch video folders');
+          throw new Error(`Failed to fetch ${source} video folders`);
         }
         const data = await response.json();
         setFolders(data);
         setLoading(false);
       } catch (err) {
-        setError('Error loading video folders. Please try again later.');
+        setError(`Error loading ${source} video folders. Please try again later.`);
         setLoading(false);
-        console.error('Error fetching video folders:', err);
+        console.error(`Error fetching ${source} video folders:`, err);
       }
     }
 
     fetchVideoFolders();
-  }, []);
+  }, [source]);
 
   return (
     <div className="min-h-screen p-8 pb-20 gap-8 flex flex-col">
       <header className="flex items-center justify-between w-full border-b pb-4">
         <div className="flex items-center gap-4">
-          <Image
-            src="/next.svg"
-            alt="Next.js Logo"
-            width={120}
-            height={25}
-            className="dark:invert"
-            priority
-          />
-          <h1 className="text-2xl font-bold ml-2">Video Streaming</h1>
+          <Link href="/">
+            <Image
+              src="/next.svg"
+              alt="Next.js Logo"
+              width={120}
+              height={25}
+              className="dark:invert cursor-pointer"
+              priority
+            />
+          </Link>
+          <h1 className="text-2xl font-bold ml-2">{title}</h1>
         </div>
         
-        {hasExternalVideos && (
+        {isExternal && (
+          <Link 
+            href="/videos" 
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+          >
+            Internal Video Library
+          </Link>
+        )}
+        
+        {!isExternal && process.env.HAS_EXTERNAL_VIDEOS === 'true' && (
           <Link 
             href="/videos?source=external" 
             className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
@@ -66,7 +80,14 @@ export default function Home() {
       </header>
 
       <main className="flex-1 w-full max-w-5xl mx-auto mt-8">
-        <h2 className="text-xl font-semibold mb-6">Video Collections</h2>
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center">
+            <Link href="/" className="text-blue-600 hover:underline mr-2">
+              ← Back to Home
+            </Link>
+            <h2 className="text-xl font-semibold">{title}</h2>
+          </div>
+        </div>
 
         {loading ? (
           <div className="text-center py-12">Loading video folders...</div>
@@ -74,11 +95,23 @@ export default function Home() {
           <div className="text-red-500 text-center py-12">{error}</div>
         ) : folders.length === 0 ? (
           <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-lg">
-            <p className="text-lg mb-4">No video folders found</p>
+            <p className="text-lg mb-4">No {isExternal ? 'external ' : ''}video folders found</p>
             <p className="text-sm text-gray-500">
-              Create folders in public/videos/ to get started
+              {isExternal 
+                ? "Check that your external videos path is correctly configured and contains video folders"
+                : "Create folders in public/videos/ to get started"}
             </p>
-            {hasExternalVideos && (
+            
+            {isExternal && (
+              <Link 
+                href="/videos" 
+                className="mt-4 inline-block px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+              >
+                View Internal Videos Instead
+              </Link>
+            )}
+            
+            {!isExternal && process.env.HAS_EXTERNAL_VIDEOS === 'true' && (
               <Link 
                 href="/videos?source=external" 
                 className="mt-4 inline-block px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
@@ -91,7 +124,7 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {folders.map((folder) => (
               <Link
-                href={`/videos/${folder.name}`}
+                href={`/videos/${folder.name}?source=${source}`}
                 key={folder.name}
                 className="block group"
               >
@@ -127,21 +160,10 @@ export default function Home() {
             ))}
           </div>
         )}
-        
-        {hasExternalVideos && folders.length > 0 && (
-          <div className="mt-8 text-center">
-            <Link 
-              href="/videos?source=external" 
-              className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white rounded hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
-            >
-              Browse External Video Library
-            </Link>
-          </div>
-        )}
       </main>
 
       <footer className="border-t pt-6 mt-12 text-center text-sm text-gray-500">
-        <p>Basic Video Streaming App - Built with Next.js</p>
+        <p>Video Streaming App - Built with Next.js</p>
       </footer>
     </div>
   );

@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 
 interface Subfolder {
   name: string;
@@ -21,7 +21,10 @@ interface FolderInfo {
 
 export default function FolderPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const folder = params.folder as string;
+  const isExternal = searchParams.get('source') === 'external';
+  const source = isExternal ? 'external' : 'internal';
   
   const [subfolders, setSubfolders] = useState<Subfolder[]>([]);
   const [folderInfo, setFolderInfo] = useState<FolderInfo | null>(null);
@@ -32,7 +35,7 @@ export default function FolderPage() {
     async function fetchData() {
       try {
         // Fetch subfolders
-        const subfoldersResponse = await fetch(`/api/subfolders/${folder}`);
+        const subfoldersResponse = await fetch(`/api/subfolders/${folder}?source=${source}`);
         if (!subfoldersResponse.ok) {
           const errorData = await subfoldersResponse.json().catch(() => ({ error: 'Failed to parse error response' }));
           throw new Error(errorData.error || `Failed to fetch subfolders: ${subfoldersResponse.status}`);
@@ -42,7 +45,7 @@ export default function FolderPage() {
         
         // Check if the folder has videos directly in it
         try {
-          const folderInfoResponse = await fetch(`/api/folder-has-videos/${folder}`);
+          const folderInfoResponse = await fetch(`/api/folder-has-videos/${folder}?source=${source}`);
           if (folderInfoResponse.ok) {
             const folderInfoData = await folderInfoResponse.json();
             setFolderInfo(folderInfoData);
@@ -66,7 +69,7 @@ export default function FolderPage() {
     if (folder) {
       fetchData();
     }
-  }, [folder]);
+  }, [folder, source]);
 
   return (
     <div className="min-h-screen p-8 pb-20 gap-8 flex flex-col">
@@ -82,15 +85,17 @@ export default function FolderPage() {
               priority
             />
           </Link>
-          <h1 className="text-2xl font-bold ml-2">Video Streaming</h1>
+          <h1 className="text-2xl font-bold ml-2">
+            {isExternal ? 'External Video Library' : 'Video Streaming'}
+          </h1>
         </div>
       </header>
 
       <main className="flex-1 w-full max-w-5xl mx-auto mt-8">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center">
-            <Link href="/" className="text-blue-600 hover:underline mr-2">
-              ← Back to Collections
+            <Link href={`/videos${isExternal ? '?source=external' : ''}`} className="text-blue-600 hover:underline mr-2">
+              ← Back to {isExternal ? 'External' : ''} Collections
             </Link>
             <h2 className="text-xl font-semibold capitalize">
               {folder} Collections
@@ -99,7 +104,7 @@ export default function FolderPage() {
           
           {folderInfo && folderInfo.hasVideos && (
             <Link
-              href={`/videos-in-folder/${folder}`}
+              href={`/videos-in-folder/${folder}?source=${source}`}
               className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
             >
               View {folderInfo.videoCount} Videos in This Folder
@@ -115,14 +120,14 @@ export default function FolderPage() {
           <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-lg">
             <p className="text-lg mb-4">No subfolders found</p>
             <p className="text-sm text-gray-500">
-              Create subfolders in public/videos/{folder}/ to organize your videos
+              Create subfolders in {isExternal ? 'your external path' : `public/videos/${folder}/`} to organize your videos
             </p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {subfolders.map((subfolder) => (
               <Link
-                href={`/videos/${folder}/${subfolder.name}`}
+                href={`/videos/${folder}/${subfolder.name}?source=${source}`}
                 key={subfolder.name}
                 className="block group"
               >
@@ -159,7 +164,7 @@ export default function FolderPage() {
       </main>
 
       <footer className="border-t pt-6 mt-12 text-center text-sm text-gray-500">
-        <p>Basic Video Streaming App - Built with Next.js</p>
+        <p>Video Streaming App - Built with Next.js</p>
       </footer>
     </div>
   );

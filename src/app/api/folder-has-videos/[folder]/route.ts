@@ -1,41 +1,29 @@
 // src/app/api/folder-has-videos/[folder]/route.ts
-import { readdirSync } from 'fs';
-import { join } from 'path';
 import { NextRequest, NextResponse } from 'next/server';
+import { getFolderInfo, VideoSource } from '@/lib/videoSourceService';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ folder: string }> }
 ) {
+  const searchParams = request.nextUrl.searchParams;
+  const source: VideoSource = searchParams.get('source') === 'external' 
+    ? 'external' 
+    : 'internal';
+  
   const folder = (await params).folder;
   
   try {
-    // Decode the folder name for filesystem access
-    const decodedFolder = decodeURIComponent(folder);
+    const folderInfo = getFolderInfo(source, folder);
     
-    // The path to the specific folder
-    const folderPath = join(process.cwd(), 'public', 'videos', decodedFolder);
+    if (!folderInfo) {
+      return NextResponse.json(
+        { error: `Failed to get info for folder ${folder}` },
+        { status: 500 }
+      );
+    }
     
-    // Video file extensions we want to detect
-    const videoExtensions = ['.mp4', '.webm', '.mov', '.avi', '.mkv'];
-    
-    // Get all files in the directory that are videos
-    const files = readdirSync(folderPath, { withFileTypes: true });
-    
-    const videos = files.filter(file => 
-      file.isFile() && 
-      videoExtensions.some(ext => file.name.toLowerCase().endsWith(ext))
-    );
-    
-    const subfolders = files.filter(item => item.isDirectory());
-    
-    // Return info about videos and subfolders
-    return NextResponse.json({
-      hasVideos: videos.length > 0,
-      videoCount: videos.length,
-      hasSubfolders: subfolders.length > 0,
-      subfolderCount: subfolders.length
-    });
+    return NextResponse.json(folderInfo);
   } catch (error) {
     console.error(`Error checking videos in folder ${folder}:`, error);
     return NextResponse.json(

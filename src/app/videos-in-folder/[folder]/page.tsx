@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 
 interface VideoFile {
   name: string;
@@ -13,7 +13,10 @@ interface VideoFile {
 
 export default function VideosInMainFolder() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const folder = params.folder as string;
+  const isExternal = searchParams.get('source') === 'external';
+  const source = isExternal ? 'external' : 'internal';
   
   const [videos, setVideos] = useState<VideoFile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -22,7 +25,7 @@ export default function VideosInMainFolder() {
   useEffect(() => {
     async function fetchVideos() {
       try {
-        const response = await fetch(`/api/videos/${folder}`);
+        const response = await fetch(`/api/videos/${folder}?source=${source}`);
         if (!response.ok) {
           throw new Error(`Failed to fetch videos for ${folder}`);
         }
@@ -39,10 +42,7 @@ export default function VideosInMainFolder() {
     if (folder) {
       fetchVideos();
     }
-  }, [folder]);
-
-  // Decode for display
-  const decodedFolder = decodeURIComponent(folder);
+  }, [folder, source]);
 
   return (
     <div className="min-h-screen p-8 pb-20 gap-8 flex flex-col">
@@ -58,17 +58,19 @@ export default function VideosInMainFolder() {
               priority
             />
           </Link>
-          <h1 className="text-2xl font-bold ml-2">Video Streaming</h1>
+          <h1 className="text-2xl font-bold ml-2">
+            {isExternal ? 'External Video Library' : 'Video Streaming'}
+          </h1>
         </div>
       </header>
 
       <main className="flex-1 w-full max-w-5xl mx-auto mt-8">
         <div className="flex items-center mb-6">
-          <Link href={`/videos/${folder}`} className="text-blue-600 hover:underline mr-2">
-            ← Back to {decodedFolder} Collections
+          <Link href={`/videos/${folder}?source=${source}`} className="text-blue-600 hover:underline mr-2">
+            ← Back to {decodeURIComponent(folder)} Collections
           </Link>
           <h2 className="text-xl font-semibold capitalize">
-            Videos in {decodedFolder}
+            Videos in {decodeURIComponent(folder)}
           </h2>
         </div>
 
@@ -80,7 +82,7 @@ export default function VideosInMainFolder() {
           <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-lg">
             <p className="text-lg mb-4">No videos found in this folder</p>
             <p className="text-sm text-gray-500">
-              Add some video files to the public/videos/{decodedFolder}/ directory
+              Add some video files to {isExternal ? 'this directory in your external path' : `the public/videos/${folder}/ directory`}
             </p>
           </div>
         ) : (
@@ -118,13 +120,13 @@ export default function VideosInMainFolder() {
                   </h3>
                   <div className="mt-4 flex justify-between items-center">
                     <Link 
-                      href={`/player/${folder}/${encodeURIComponent(video.name)}`}
+                      href={`/player/${encodeURIComponent(folder)}/${encodeURIComponent(video.name)}?source=${source}`}
                       className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
                     >
                       Play Video
                     </Link>
                     <a 
-                      href={video.path} 
+                      href={`${video.path}?source=${source}`} 
                       download
                       className="text-blue-600 hover:underline"
                     >
@@ -139,7 +141,7 @@ export default function VideosInMainFolder() {
       </main>
 
       <footer className="border-t pt-6 mt-12 text-center text-sm text-gray-500">
-        <p>Basic Video Streaming App - Built with Next.js</p>
+        <p>Video Streaming App - Built with Next.js</p>
       </footer>
     </div>
   );

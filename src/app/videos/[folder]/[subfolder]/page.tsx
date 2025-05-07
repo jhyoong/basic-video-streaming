@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 
 interface VideoFile {
   name: string;
@@ -13,8 +13,11 @@ interface VideoFile {
 
 export default function SubfolderPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const folder = params.folder as string;
   const subfolder = params.subfolder as string;
+  const isExternal = searchParams.get('source') === 'external';
+  const source = isExternal ? 'external' : 'internal';
   
   const [videos, setVideos] = useState<VideoFile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -23,7 +26,7 @@ export default function SubfolderPage() {
   useEffect(() => {
     async function fetchVideos() {
       try {
-        const response = await fetch(`/api/videos/${folder}/${subfolder}`);
+        const response = await fetch(`/api/videos/${folder}/${subfolder}?source=${source}`);
         if (!response.ok) {
           throw new Error(`Failed to fetch videos for ${folder}/${subfolder}`);
         }
@@ -40,11 +43,7 @@ export default function SubfolderPage() {
     if (folder && subfolder) {
       fetchVideos();
     }
-  }, [folder, subfolder]);
-
-  // Decode for display
-  const decodedFolder = decodeURIComponent(folder);
-  const decodedSubfolder = decodeURIComponent(subfolder);
+  }, [folder, subfolder, source]);
 
   return (
     <div className="min-h-screen p-8 pb-20 gap-8 flex flex-col">
@@ -60,17 +59,19 @@ export default function SubfolderPage() {
               priority
             />
           </Link>
-          <h1 className="text-2xl font-bold ml-2">Video Streaming</h1>
+          <h1 className="text-2xl font-bold ml-2">
+            {isExternal ? 'External Video Library' : 'Video Streaming'}
+          </h1>
         </div>
       </header>
 
       <main className="flex-1 w-full max-w-5xl mx-auto mt-8">
         <div className="flex items-center mb-6">
-          <Link href={`/videos/${folder}`} className="text-blue-600 hover:underline mr-2">
-            ← Back to {decodedFolder}
+          <Link href={`/videos/${folder}?source=${source}`} className="text-blue-600 hover:underline mr-2">
+            ← Back to {decodeURIComponent(folder)}
           </Link>
           <h2 className="text-xl font-semibold capitalize">
-            {decodedSubfolder} Videos
+            {decodeURIComponent(subfolder)} Videos
           </h2>
         </div>
 
@@ -82,7 +83,7 @@ export default function SubfolderPage() {
           <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-lg">
             <p className="text-lg mb-4">No videos found in this subfolder</p>
             <p className="text-sm text-gray-500">
-              Add some video files to the public/videos/{decodedFolder}/{decodedSubfolder} directory
+              Add some video files to {isExternal ? 'this directory in your external path' : `the public/videos/${folder}/${subfolder} directory`}
             </p>
           </div>
         ) : (
@@ -120,13 +121,13 @@ export default function SubfolderPage() {
                   </h3>
                   <div className="mt-4 flex justify-between items-center">
                     <Link 
-                      href={`/player/${folder}/${subfolder}/${encodeURIComponent(video.name)}`}
+                      href={`/player/${encodeURIComponent(folder)}/${encodeURIComponent(subfolder)}/${encodeURIComponent(video.name)}?source=${source}`}
                       className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
                     >
                       Play Video
                     </Link>
                     <a 
-                      href={video.path} 
+                      href={`${video.path}?source=${source}`} 
                       download
                       className="text-blue-600 hover:underline"
                     >
@@ -141,7 +142,7 @@ export default function SubfolderPage() {
       </main>
 
       <footer className="border-t pt-6 mt-12 text-center text-sm text-gray-500">
-        <p>Basic Video Streaming App - Built with Next.js</p>
+        <p>Video Streaming App - Built with Next.js</p>
       </footer>
     </div>
   );

@@ -4,35 +4,39 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 
 export default function VideoPlayer() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const path = params.path as string[];
+  const isExternal = searchParams.get('source') === 'external';
+  const source = isExternal ? 'external' : 'internal';
   
   if (!path || path.length < 2) {
     return <div>Invalid video path</div>;
   }
   
   // The last segment is always the video name
-  const videoName = decodeURIComponent(path[path.length - 1]);
+  const videoName = path[path.length - 1];
+  const decodedVideoName = decodeURIComponent(videoName);
   
   // Determine if we're in a main folder or subfolder
-  const folder = decodeURIComponent(path[0]);
-  const subfolder = path.length > 2 ? decodeURIComponent(path[1]) : null;
+  const folder = path[0];
+  const subfolder = path.length > 2 ? path[1] : null;
   
-  // Build the video path - using original (encoded) path segments for URL
-  const videoPath = `/videos/${path.join('/')}`;
+  // Build the video path
+  const videoPath = `/api/videos/${path.join('/')}?source=${source}`;
   
   // Build the return path
   const returnPath = subfolder 
-    ? `/videos/${encodeURIComponent(folder)}/${encodeURIComponent(subfolder)}` 
-    : `/videos/${encodeURIComponent(folder)}`;
+    ? `/videos/${folder}/${subfolder}?source=${source}` 
+    : `/videos/${folder}?source=${source}`;
   
   // Display text for the collection
   const collectionText = subfolder 
-    ? `${folder} / ${subfolder}` 
-    : folder;
+    ? `${decodeURIComponent(folder)} / ${decodeURIComponent(subfolder)}` 
+    : decodeURIComponent(folder);
 
   return (
     <div className="min-h-screen flex flex-col bg-black text-white">
@@ -49,13 +53,15 @@ export default function VideoPlayer() {
                 priority
               />
             </Link>
-            <h1 className="text-xl font-bold ml-2 hidden sm:block">Video Streaming</h1>
+            <h1 className="text-xl font-bold ml-2 hidden sm:block">
+              {isExternal ? 'External Video Player' : 'Video Player'}
+            </h1>
           </div>
           <Link 
             href={returnPath}
             className="text-sm text-blue-400 hover:underline"
           >
-            ← Back to {subfolder ? subfolder : folder}
+            ← Back to {subfolder ? decodeURIComponent(subfolder) : decodeURIComponent(folder)}
           </Link>
         </div>
       </header>
@@ -73,9 +79,10 @@ export default function VideoPlayer() {
             </video>
           </div>
           <div className="p-4">
-            <h1 className="text-xl font-semibold mb-2">{videoName}</h1>
+            <h1 className="text-xl font-semibold mb-2">{decodedVideoName}</h1>
             <p className="text-gray-400 text-sm mb-4">
               From collection: <span className="capitalize">{collectionText}</span>
+              {isExternal && <span className="ml-2 px-2 py-1 bg-blue-600 text-xs rounded-full">External</span>}
             </p>
             <div className="flex gap-4">
               <a
@@ -97,7 +104,7 @@ export default function VideoPlayer() {
       </main>
       
       <footer className="p-4 bg-gray-900 text-center text-sm text-gray-500">
-        <p>Basic Video Streaming App - Built with Next.js</p>
+        <p>Video Streaming App - Built with Next.js</p>
       </footer>
     </div>
   );
