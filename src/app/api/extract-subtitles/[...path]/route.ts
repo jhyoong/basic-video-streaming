@@ -39,6 +39,10 @@ export async function GET(
       );
     }
     
+    // Check if this is an external source
+    const source = request.nextUrl.searchParams.get('source') || 'internal';
+    console.log('Source type:', source);
+    
     // Only process MKV files
     const fileName = pathSegments[pathSegments.length - 1];
     console.log('Processing file:', fileName);
@@ -51,9 +55,18 @@ export async function GET(
       });
     }
     
-    // Construct the path based on the number of segments
-    const relativePathSegments = ['public', 'videos', ...pathSegments];
-    const videoPath = join(process.cwd(), ...relativePathSegments);
+    // Construct the path based on source type
+    let videoPath;
+    if (source === 'external') {
+      // For external sources, get the configured external media path
+      // You might need to adapt this based on your configuration
+      const externalBasePath = process.env.EXTERNAL_VIDEOS_PATH || '/media/external';
+      videoPath = join(externalBasePath, ...pathSegments);
+    } else {
+      // For internal sources (from public directory)
+      videoPath = join(process.cwd(), 'public', 'videos', ...pathSegments);
+    }
+    
     console.log('Full video path:', videoPath);
     
     // Check if file exists
@@ -68,7 +81,7 @@ export async function GET(
     // Create a unique directory structure for the extracted subtitles
     console.log('Setting up cache directory');
     const cacheDir = await ensureCacheDir();
-    const videoSubDir = join(cacheDir, ...pathSegments.slice(0, -1));
+    const videoSubDir = join(cacheDir, source, ...pathSegments.slice(0, -1));
     console.log('Video subtitle directory:', videoSubDir);
     
     if (!existsSync(videoSubDir)) {
@@ -93,14 +106,11 @@ export async function GET(
       try {
         const ffmpegVersion = execSync('ffmpeg -version').toString().split('\n')[0];
         console.log('FFmpeg version:', ffmpegVersion);
-        
-        const ffprobeVersion = execSync('ffprobe -version').toString().split('\n')[0];
-        console.log('FFprobe version:', ffprobeVersion);
       } catch (error) {
-        console.error('FFmpeg or FFprobe not found or not working:', error);
+        console.error('FFmpeg not found or not working:', error);
         return NextResponse.json({ 
           success: false,
-          error: "FFmpeg or FFprobe not installed or not working",
+          error: "FFmpeg not installed or not working",
           details: error instanceof Error ? error.message : String(error)
         }, { status: 500 });
       }

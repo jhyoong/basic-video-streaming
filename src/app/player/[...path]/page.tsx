@@ -60,7 +60,8 @@ export default function VideoPlayer() {
           console.log("Extracting subtitles for", decodedVideoName);
           
           // First, make a call to extract subtitles (this ensures they're processed and cached)
-          const extractResponse = await fetch(`/api/extract-subtitles/${path.join('/')}`);
+          // Pass the source parameter to the API
+          const extractResponse = await fetch(`/api/extract-subtitles/${path.join('/')}?source=${source}`);
           if (!extractResponse.ok) {
             console.warn('Subtitle extraction may have failed:', extractResponse.status);
           } else {
@@ -68,7 +69,8 @@ export default function VideoPlayer() {
           }
           
           // Then, fetch the extracted subtitle information
-          const subtitlesResponse = await fetch(`/api/video-subtitles/${path.join('/')}`);
+          // Pass the source parameter to the API
+          const subtitlesResponse = await fetch(`/api/video-subtitles/${path.join('/')}?source=${source}`);
           if (subtitlesResponse.ok) {
             const data = await subtitlesResponse.json();
             console.log("Subtitle data received:", data);
@@ -94,7 +96,7 @@ export default function VideoPlayer() {
     }
 
     fetchAndProcessSubtitles();
-  }, [decodedVideoName, path]);
+  }, [decodedVideoName, path, source]);
 
   // Effect to handle track selection when video element is available
   useEffect(() => {
