@@ -40,10 +40,12 @@ Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/bui
 1. Cleanup basic UI looks
 2. Fix some bugs here and there
 3. Add torrent links perhaps using (https://github.com/transmission/transmission)
-4. Extend video pathing to separate disk
+4. ~~Extend video pathing to separate disk~~
 5. Add scripts for running on startup
 6. Tidy up README
-7. Setup kubernetes cluster to see if the webapp can be offloaded to a separate rpi.
-8. Enable subtitles loading for mkv files.
+7. Setup kubernetes cluster to see if the webapp can be offloaded to a separate rpi. Will need to consider actual storage pathing issues. 
+8. ~~Enable subtitles loading for mkv files.~~
 9. Logging to file.
 10. Internet connectivity (maybe on router side only) and user password login required.
+11. Search bar function 
+12. Condense page view to show both folders and videos 

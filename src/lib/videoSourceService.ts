@@ -183,7 +183,7 @@ export function getVideos(source: VideoSource, pathSegments: string[]): VideoFil
     // Video file extensions we want to detect
     const videoExtensions = getVideoExtensions();
     
-    // Get all files in the directory
+    // Get all files in the directory - TODO: Fix bug with video folder pathing
     return readdirSync(folderPath, { withFileTypes: true })
       .filter(file => 
         file.isFile() && 
