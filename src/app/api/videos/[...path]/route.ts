@@ -1,13 +1,16 @@
 // src/app/api/videos/[...path]/route.ts
-import { readdirSync } from 'fs';
-import { join } from 'path';
 import { NextRequest, NextResponse } from 'next/server';
+import { getVideos, streamVideo, VideoSource } from '@/lib/videoSourceService';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ path: string[] }> }
 ) {
-
+  const searchParams = request.nextUrl.searchParams;
+  const source: VideoSource = searchParams.get('source') === 'external' 
+    ? 'external' 
+    : 'internal';
+    
   const pathSegments = (await params).path;
   
   if (!pathSegments || pathSegments.length === 0) {
@@ -17,37 +20,24 @@ export async function GET(
     );
   }
   
-  try {
-    // Construct the path based on the number of segments
-    // For a main folder: ['nature']
-    // For a subfolder: ['nature', 'wildlife']
-    const relativePathSegments = ['public', 'videos', ...pathSegments];
-    const folderPath = join(process.cwd(), ...relativePathSegments);
-    
-    // Build the URL path for the videos
-    const urlPathPrefix = `/videos/${pathSegments.join('/')}`;
-    
-    // Video file extensions we want to detect
-    const videoExtensions = ['.mp4', '.webm', '.mov', '.avi', '.mkv'];
-    
-    // Get all files in the directory
-    const files = readdirSync(folderPath, { withFileTypes: true })
-      .filter(file => 
-        file.isFile() && 
-        videoExtensions.some(ext => file.name.toLowerCase().endsWith(ext))
-      )
-      .map(file => ({
-        name: file.name,
-        path: `${urlPathPrefix}/${file.name}`,
-      }));
-
-    // Return the files as JSON
-    return NextResponse.json(files);
-  } catch (error) {
-    console.error(`Error reading videos from path ${pathSegments.join('/')}:`, error);
-    return NextResponse.json(
-      { error: `Failed to read videos from path ${pathSegments.join('/')}` },
-      { status: 500 }
-    );
+  // Check if this is a streaming request (has a file extension)
+  const lastSegment = pathSegments[pathSegments.length - 1];
+  const isFile = /\.\w+$/.test(lastSegment);
+  
+  if (isFile) {
+    // Stream the video file
+    return streamVideo(request, source, pathSegments);
+  } else {
+    // List videos in the directory
+    try {
+      const videos = getVideos(source, pathSegments);
+      return NextResponse.json(videos);
+    } catch (error) {
+      console.error(`Error reading videos from path ${pathSegments.join('/')}:`, error);
+      return NextResponse.json(
+        { error: `Failed to read videos from path ${pathSegments.join('/')}` },
+        { status: 500 }
+      );
+    }
   }
 }
