@@ -25,31 +25,61 @@ export default function VideoPlayer() {
   const [subtitlesLoading, setSubtitlesLoading] = useState(false);
   const [selectedTrack, setSelectedTrack] = useState<number | null>(null);
   const [videoReady, setVideoReady] = useState(false);
-    
-  if (!path || path.length < 2) {
+  
+  if (!path || path.length === 0) {
     return <div>Invalid video path</div>;
   }
   
-  // The last segment is always the video name
-  const videoName = path[path.length - 1];
+  // Check if this is a filesystem path
+  const isFilesystemPath = path[0] === 'filesystem';
+  
+  // For filesystem paths, we need to handle things differently
+  let videoName: string;
+  let videoPath: string;
+  let returnPath: string;
+  let collectionText: string;
+  
+  if (isFilesystemPath) {
+    // Remove 'filesystem' prefix
+    const filesystemPath = path.slice(1);
+    videoName = filesystemPath[filesystemPath.length - 1];
+    const decodedVideoName = decodeURIComponent(videoName);
+    
+    // Build the video path with filesystem prefix
+    videoPath = `/api/videos/filesystem/${filesystemPath.join('/')}?source=${source}`;
+    
+    // Return to the parent directory in filesystem
+    const parentPath = filesystemPath.slice(0, -1).join('/');
+    returnPath = parentPath ? `/filesystem?path=${encodeURIComponent('/' + parentPath)}` : '/filesystem';
+    
+    // Display the filesystem path
+    collectionText = filesystemPath.slice(0, -1).join(' / ') || 'Root';
+    
+    // We'll use the filesystem path for subtitle extraction as well
+  } else {
+    // Handle regular video paths as before
+    videoName = path[path.length - 1];
+    const decodedVideoName = decodeURIComponent(videoName);
+    
+    // Determine if we're in a main folder or subfolder
+    const folder = path[0];
+    const subfolder = path.length > 2 ? path[1] : null;
+    
+    // Build the video path
+    videoPath = `/api/videos/${path.join('/')}?source=${source}`;
+    
+    // Build the return path
+    returnPath = subfolder 
+      ? `/videos/${folder}/${subfolder}?source=${source}` 
+      : `/videos/${folder}?source=${source}`;
+    
+    // Display text for the collection
+    collectionText = subfolder 
+      ? `${decodeURIComponent(folder)} / ${decodeURIComponent(subfolder)}` 
+      : decodeURIComponent(folder);
+  }
+  
   const decodedVideoName = decodeURIComponent(videoName);
-  
-  // Determine if we're in a main folder or subfolder
-  const folder = path[0];
-  const subfolder = path.length > 2 ? path[1] : null;
-  
-  // Build the video path
-  const videoPath = `/api/videos/${path.join('/')}?source=${source}`;
-  
-  // Build the return path
-  const returnPath = subfolder 
-    ? `/videos/${folder}/${subfolder}?source=${source}` 
-    : `/videos/${folder}?source=${source}`;
-  
-  // Display text for the collection
-  const collectionText = subfolder 
-    ? `${decodeURIComponent(folder)} / ${decodeURIComponent(subfolder)}` 
-    : decodeURIComponent(folder);
 
   useEffect(() => {
     async function fetchAndProcessSubtitles() {
@@ -163,14 +193,14 @@ export default function VideoPlayer() {
               />
             </Link>
             <h1 className="text-xl font-bold ml-2 hidden sm:block">
-              {isExternal ? 'External Video Player' : 'Video Player'}
+              {isFilesystemPath ? 'File System Video Player' : (isExternal ? 'External Video Player' : 'Video Player')}
             </h1>
           </div>
           <Link 
             href={returnPath}
             className="text-sm text-blue-400 hover:underline"
           >
-            ← Back to {subfolder ? decodeURIComponent(subfolder) : decodeURIComponent(folder)}
+            ← Back to {isFilesystemPath ? 'File System' : (collectionText)}
           </Link>
         </div>
       </header>
@@ -222,7 +252,7 @@ export default function VideoPlayer() {
           <div className="p-4">
             <h1 className="text-xl font-semibold mb-2">{decodedVideoName}</h1>
             <p className="text-gray-400 text-sm mb-4">
-              From collection: <span className="capitalize">{collectionText}</span>
+              From: <span className="capitalize">{isFilesystemPath ? 'File System - ' + collectionText : collectionText}</span>
             </p>
             
             {subtitles.length > 0 && (
@@ -258,7 +288,7 @@ export default function VideoPlayer() {
                 href={returnPath}
                 className="px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600 transition-colors text-sm"
               >
-                Back to Collection
+                Back to {isFilesystemPath ? 'File System' : 'Collection'}
               </Link>
             </div>
           </div>
