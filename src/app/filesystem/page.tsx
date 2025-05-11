@@ -8,6 +8,9 @@ import { HomePage } from '../../components/HomePage';
 import { FileSystemItem, FileSystemResponse } from '../api/filesystem/route';
 import { useRouter, useSearchParams } from 'next/navigation';
 
+// Import the file filter to check if a file is a video
+const VIDEO_EXTENSIONS = ['mp4', 'avi', 'mkv', 'mov', 'wmv', 'flv', 'webm'];
+
 export default function FileSystemPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -57,10 +60,29 @@ export default function FileSystemPage() {
 
   const handleItemClick = (item: FileSystemItem) => {
     setSelectedItem(item);
+    
+    // Handle folder clicks - maintain existing behavior
     if (item.type === 'folder') {
       setCurrentPath(item.path);
       router.push(`/filesystem?path=${encodeURIComponent(item.path)}`);
+      return;
     }
+    
+    // Handle video file clicks - redirect to video player
+    if (item.type === 'file' && item.extension && VIDEO_EXTENSIONS.includes(item.extension.toLowerCase())) {
+      // Convert filesystem path to player path format
+      // Remove leading slashes and encode path segments
+      const pathSegments = item.path
+        .replace(/^\/+/, '') // Remove leading slashes
+        .split('/')
+        .map(segment => encodeURIComponent(segment));
+      
+      // Construct the player URL with filesystem prefix and external source
+      const playerUrl = `/player/filesystem/${pathSegments.join('/')}?source=external`;
+      console.log('Redirecting to video player:', playerUrl);
+      router.push(playerUrl);
+    }
+    // For non-video files, maintain existing behavior (just select them)
   };
 
   const handleNavigate = (path: string) => {
@@ -130,6 +152,11 @@ export default function FileSystemPage() {
                 )}
                 {selectedItem.modified && (
                   <p><span className="text-gray-500">Modified:</span> {new Date(selectedItem.modified).toLocaleString()}</p>
+                )}
+                {selectedItem.type === 'file' && selectedItem.extension && VIDEO_EXTENSIONS.includes(selectedItem.extension.toLowerCase()) && (
+                  <p className="text-green-600 text-sm mt-2">
+                    🎥 This video will open in the player when clicked
+                  </p>
                 )}
               </div>
             ) : (
