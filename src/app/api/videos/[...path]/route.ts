@@ -1,6 +1,5 @@
 // src/app/api/videos/[...path]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { getVideos, streamVideo, VideoSource } from '@/lib/videoSourceService';
 import path from 'path';
 import { createReadStream, statSync } from 'fs';
 
@@ -8,11 +7,6 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ path: string[] }> }
 ) {
-  const searchParams = request.nextUrl.searchParams;
-  const source: VideoSource = searchParams.get('source') === 'external' 
-    ? 'external' 
-    : 'internal';
-    
   const pathSegments = (await params).path;
   
   if (!pathSegments || pathSegments.length === 0) {
@@ -34,42 +28,15 @@ export async function GET(
       );
     }
     
-    // Check if this is a streaming request (has a file extension)
-    const lastSegment = filesystemPath[filesystemPath.length - 1];
-    const isFile = /\.\w+$/.test(lastSegment);
-    
-    if (isFile) {
-      // Stream the video file from filesystem
-      return streamVideoFromFilesystem(request, filesystemPath);
-    } else {
-      // For filesystem, we don't list directories, just stream individual files
-      return NextResponse.json(
-        { error: "Directory listing not supported for filesystem paths" },
-        { status: 400 }
-      );
-    }
+    // Stream the video file from filesystem
+    return streamVideoFromFilesystem(request, filesystemPath);
   }
   
-  // Check if this is a streaming request (has a file extension)
-  const lastSegment = pathSegments[pathSegments.length - 1];
-  const isFile = /\.\w+$/.test(lastSegment);
-  
-  if (isFile) {
-    // Stream the video file
-    return streamVideo(request, source, pathSegments);
-  } else {
-    // List videos in the directory
-    try {
-      const videos = getVideos(source, pathSegments);
-      return NextResponse.json(videos);
-    } catch (error) {
-      console.error(`Error reading videos from path ${pathSegments.join('/')}:`, error);
-      return NextResponse.json(
-        { error: `Failed to read videos from path ${pathSegments.join('/')}` },
-        { status: 500 }
-      );
-    }
-  }
+  // If we get here, it's not a valid format for this API
+  return NextResponse.json(
+    { error: "Invalid video path format. Use /api/videos/filesystem/[...path] for filesystem videos." },
+    { status: 400 }
+  );
 }
 
 // Function to stream video files from filesystem
