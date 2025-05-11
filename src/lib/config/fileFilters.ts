@@ -8,6 +8,8 @@ const ALLOWED_EXTENSIONS: string[] = [
   'jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp',
   // Videos
   'mp4', 'avi', 'mkv', 'mov', 'wmv', 'flv', 'webm',
+  // Subtitles
+  'vtt',
   // Audio
   'mp3', 'wav', 'ogg', 'flac', 'm4a',
   // Code

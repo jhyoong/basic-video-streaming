@@ -92,7 +92,15 @@ export default function FileSystemPage() {
 
   return (
     <div className="max-w-6xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-6">File System Explorer</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold">File System Explorer</h1>
+        <button
+          onClick={() => router.push('/')}
+          className="text-blue-600 hover:text-blue-800 text-sm"
+        >
+          ← Home
+        </button>
+      </div>
       
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
         <BreadcrumbNavigator

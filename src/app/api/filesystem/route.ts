@@ -109,9 +109,9 @@ export async function GET(request: NextRequest) {
 
     console.log(`Filesystem API: Requested path: ${requestedPath}`);
 
-    // Special handling for home page
-    if ((requestedPath === '.' || requestedPath === '/') && pathConfig.enforceAllowedPaths) {
-      console.log('Filesystem API: Showing home page');
+    // Special handling for home page - always show allowed paths when accessing root
+    if (requestedPath === '.' || requestedPath === '/' || requestedPath === '') {
+      console.log('Filesystem API: Showing home page with allowed paths');
       const allowedPaths = getAllowedBasePaths();
       return NextResponse.json({
         items: [],
