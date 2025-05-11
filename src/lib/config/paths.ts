@@ -12,9 +12,9 @@ export interface PathConfig {
 // Load configuration from environment variables with sensible defaults
 export const pathConfig: PathConfig = {
   allowedBasePaths: process.env.ALLOWED_FILESYSTEM_PATHS 
-    ? process.env.ALLOWED_FILESYSTEM_PATHS.split(',').map(p => p.trim())
-    : [path.join(os.homedir(), 'documents'), path.join(os.homedir(), 'downloads')],
-  maxDepth: parseInt(process.env.FILESYSTEM_MAX_DEPTH || '3'),
+    ? process.env.ALLOWED_FILESYSTEM_PATHS.split(',').map(p => p.trim()).map(p => path.resolve(p))
+    : [path.resolve(os.homedir(), 'documents'), path.resolve(os.homedir(), 'downloads')],
+  maxDepth: parseInt(process.env.FILESYSTEM_MAX_DEPTH || '50'), // Increased to allow deeper paths
   enforceAllowedPaths: process.env.FILESYSTEM_ENFORCE_PATHS === 'true',
   defaultPath: process.env.FILESYSTEM_DEFAULT_PATH || os.homedir(),
 };
@@ -31,7 +31,10 @@ export function isPathAllowed(requestedPath: string): boolean {
   
   return pathConfig.allowedBasePaths.some(basePath => {
     const absoluteBase = path.resolve(basePath);
-    return absolutePath.startsWith(absoluteBase);
+    const relativePath = path.relative(absoluteBase, absolutePath);
+    
+    // Check if the path is within the base path
+    return !relativePath.startsWith('..') && !path.isAbsolute(relativePath);
   });
 }
 
@@ -49,26 +52,69 @@ export function getAllowedBasePaths(): Array<{path: string, name: string}> {
  * Resolve a requested path, handling both absolute and relative paths
  */
 export function resolveRequestedPath(requestedPath: string): string {
-  // If it's already an absolute path, use it directly
+  console.log(`PathConfig: Resolving path: ${requestedPath}`);
+  
+  // Handle special cases
+  if (requestedPath === '.' || requestedPath === '/') {
+    if (pathConfig.enforceAllowedPaths && pathConfig.allowedBasePaths.length > 0) {
+      return pathConfig.allowedBasePaths[0];
+    }
+    return pathConfig.defaultPath;
+  }
+  
+  // If it's already an absolute path, normalize it
   if (path.isAbsolute(requestedPath)) {
-    return path.normalize(requestedPath);
+    const normalized = path.normalize(requestedPath);
+    console.log(`PathConfig: Resolved absolute path: ${normalized}`);
+    return normalized;
   }
   
-  // If it's relative, resolve it from the current working directory
-  // But if enforcement is on and no allowed paths, use default path
-  if (pathConfig.enforceAllowedPaths && pathConfig.allowedBasePaths.length === 0) {
-    return path.resolve(pathConfig.defaultPath, requestedPath);
+  // Handle URL encoded paths
+  const decodedPath = decodeURIComponent(requestedPath);
+  
+  // Check if the decoded path is absolute
+  if (path.isAbsolute(decodedPath)) {
+    const normalized = path.normalize(decodedPath);
+    console.log(`PathConfig: Resolved decoded absolute path: ${normalized}`);
+    return normalized;
   }
   
-  return path.resolve(process.cwd(), requestedPath);
+  // For relative paths, resolve from the first allowed base path if enforcement is on
+  if (pathConfig.enforceAllowedPaths && pathConfig.allowedBasePaths.length > 0) {
+    const resolved = path.resolve(pathConfig.allowedBasePaths[0], decodedPath);
+    console.log(`PathConfig: Resolved relative path from base: ${resolved}`);
+    return resolved;
+  }
+  
+  // Otherwise resolve from current working directory
+  const resolved = path.resolve(process.cwd(), decodedPath);
+  console.log(`PathConfig: Resolved relative path from cwd: ${resolved}`);
+  return resolved;
 }
 
 /**
  * Check if a path is within the maximum allowed depth
  */
 export function isWithinMaxDepth(requestedPath: string): boolean {
-  const depth = requestedPath.split(path.sep).length;
-  return depth <= pathConfig.maxDepth + 10; // Add some buffer for reasonable system paths
+  // Get the deepest allowed base path
+  let deepestBasePath = '';
+  let maxBasePathDepth = 0;
+  
+  for (const basePath of pathConfig.allowedBasePaths) {
+    const depth = basePath.split(path.sep).length;
+    if (depth > maxBasePathDepth) {
+      maxBasePathDepth = depth;
+      deepestBasePath = basePath;
+    }
+  }
+  
+  // Calculate depth relative to the deepest base path
+  const targetDepth = requestedPath.split(path.sep).length;
+  const relativeDepth = targetDepth - maxBasePathDepth;
+  
+  console.log(`PathConfig: Depth check - target: ${targetDepth}, base: ${maxBasePathDepth}, relative: ${relativeDepth}, max: ${pathConfig.maxDepth}`);
+  
+  return relativeDepth <= pathConfig.maxDepth;
 }
 
 /**

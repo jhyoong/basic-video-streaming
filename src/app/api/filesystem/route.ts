@@ -107,9 +107,11 @@ export async function GET(request: NextRequest) {
     const depth = parseInt(searchParams.get('depth') || '1');
     const flatten = searchParams.get('flatten') === 'true';
 
-    // Check if requesting home page (empty or default path when enforcement is on)
+    console.log(`Filesystem API: Requested path: ${requestedPath}`);
+
+    // Special handling for home page
     if ((requestedPath === '.' || requestedPath === '/') && pathConfig.enforceAllowedPaths) {
-      // Return home page with allowed base paths
+      console.log('Filesystem API: Showing home page');
       const allowedPaths = getAllowedBasePaths();
       return NextResponse.json({
         items: [],
@@ -118,11 +120,27 @@ export async function GET(request: NextRequest) {
       });
     }
     
-    // Resolve the path (handles both absolute and relative paths)
-    const resolvedPath = resolveRequestedPath(requestedPath);
+    // Resolve the path - this is where the bug was
+    let resolvedPath;
+    try {
+      resolvedPath = resolveRequestedPath(requestedPath);
+      console.log(`Filesystem API: Resolved path: ${resolvedPath}`);
+    } catch (error) {
+      console.error('Filesystem API: Error resolving path:', error);
+      return NextResponse.json(
+        { 
+          items: [], 
+          error: 'Invalid path format',
+          isHomePage: true,
+          allowedPaths: getAllowedBasePaths(),
+        },
+        { status: 400 }
+      );
+    }
     
     // Check if the resolved path is allowed
     if (!isPathAllowed(resolvedPath)) {
+      console.log(`Filesystem API: Path not allowed: ${resolvedPath}`);
       return NextResponse.json(
         { 
           items: [], 
@@ -135,6 +153,7 @@ export async function GET(request: NextRequest) {
     
     // Check if the path is within the maximum allowed depth
     if (!isWithinMaxDepth(resolvedPath)) {
+      console.log(`Filesystem API: Path exceeds max depth: ${resolvedPath}`);
       return NextResponse.json(
         { 
           items: [], 
@@ -147,14 +166,32 @@ export async function GET(request: NextRequest) {
 
     // Verify the path exists
     try {
-      await fs.access(resolvedPath);
+      const stats = await fs.stat(resolvedPath);
+      if (!stats.isDirectory()) {
+        console.log(`Filesystem API: Path is not a directory: ${resolvedPath}`);
+        return NextResponse.json(
+          { 
+            items: [], 
+            error: 'Path is not a directory',
+            allowedPaths: getAllowedBasePaths(),
+          },
+          { status: 400 }
+        );
+      }
     } catch (error) {
+      console.error(`Filesystem API: Path does not exist: ${resolvedPath}`, error);
       return NextResponse.json(
-        { items: [], error: 'Path does not exist or is not accessible' },
+        { 
+          items: [], 
+          error: 'Path does not exist or is not accessible',
+          isHomePage: true,
+          allowedPaths: getAllowedBasePaths(),
+        },
         { status: 404 }
       );
     }
 
+    console.log(`Filesystem API: Reading directory: ${resolvedPath}`);
     let items = await readDirectory(resolvedPath, 0, depth);
 
     // Optional: Flatten the structure if requested
