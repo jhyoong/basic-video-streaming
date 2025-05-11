@@ -154,7 +154,7 @@ export default function FileSystemPage() {
             onClick={() => router.push('/')}
             className="text-blue-600 hover:text-blue-800 text-sm"
           >
-            ← Back to Video Streaming
+            ← Back to HomePage
           </button>
         </div>
       </div>

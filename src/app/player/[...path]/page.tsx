@@ -67,9 +67,11 @@ export default function VideoPlayer() {
         try {
           console.log("Extracting subtitles for", decodedVideoName);
           
+          // Build the correct path for the video
+          const fullVideoPath = '/' + path.slice(1).map(segment => decodeURIComponent(segment)).join('/');
+          
           // First, make a call to extract subtitles (this ensures they're processed and cached)
-          // Note: We use 'external' source for filesystem videos
-          const extractResponse = await fetch(`/api/extract-subtitles/${path.join('/')}?source=external`);
+          const extractResponse = await fetch(`/api/extract-subtitles?path=${encodeURIComponent(fullVideoPath)}`);
           if (!extractResponse.ok) {
             console.warn('Subtitle extraction may have failed:', extractResponse.status);
           } else {
@@ -77,8 +79,7 @@ export default function VideoPlayer() {
           }
           
           // Then, fetch the extracted subtitle information
-          // Note: We use 'external' source for filesystem videos
-          const subtitlesResponse = await fetch(`/api/video-subtitles/${path.join('/')}?source=external`);
+          const subtitlesResponse = await fetch(`/api/video-subtitles?path=${encodeURIComponent(fullVideoPath)}`);
           if (subtitlesResponse.ok) {
             const data = await subtitlesResponse.json();
             console.log("Subtitle data received:", data);
