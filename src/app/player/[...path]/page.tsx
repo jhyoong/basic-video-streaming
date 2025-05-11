@@ -17,8 +17,6 @@ export default function VideoPlayer() {
   const params = useParams();
   const searchParams = useSearchParams();
   const path = params.path as string[];
-  const isExternal = searchParams.get('source') === 'external';
-  const source = isExternal ? 'external' : 'internal';
   const videoRef = useRef<HTMLVideoElement>(null);
   const [subtitles, setSubtitles] = useState<SubtitleTrack[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,44 +38,26 @@ export default function VideoPlayer() {
   let collectionText: string;
   
   if (isFilesystemPath) {
-  // Remove 'filesystem' prefix and decode path segments
-  const filesystemPath = path.slice(1);
-  videoName = filesystemPath[filesystemPath.length - 1];
-  
-  // Build the video path with filesystem prefix (keep encoded for API)
-  videoPath = `/api/videos/filesystem/${filesystemPath.join('/')}?source=${source}`;
-  
-  // Return to the parent directory in filesystem - decode before encoding
-  const decodedParentSegments = filesystemPath.slice(0, -1).map(segment => decodeURIComponent(segment));
-  const parentPath = decodedParentSegments.join('/');
-  returnPath = parentPath ? `/filesystem?path=${encodeURIComponent('/' + parentPath)}` : '/filesystem';
-  
-  // Display the filesystem path - decode for display
-  collectionText = decodedParentSegments.join(' / ') || 'Root';
-} else {
-  // Handle regular video paths - decode path segments
-  videoName = path[path.length - 1];
-  
-  // Determine if we're in a main folder or subfolder
-  const folder = decodeURIComponent(path[0]);
-  const subfolder = path.length > 2 ? decodeURIComponent(path[1]) : null;
-  
-  // Build the video path (keep encoded for API)
-  videoPath = `/api/videos/${path.join('/')}?source=${source}`;
-  
-  // Build the return path - encode properly
-  returnPath = subfolder 
-    ? `/videos/${encodeURIComponent(folder)}/${encodeURIComponent(subfolder)}?source=${source}` 
-    : `/videos/${encodeURIComponent(folder)}?source=${source}`;
-  
-  // Display text for the collection - already decoded
-  collectionText = subfolder 
-    ? `${folder} / ${subfolder}` 
-    : folder;
-}
+    // Remove 'filesystem' prefix and decode path segments
+    const filesystemPath = path.slice(1);
+    videoName = filesystemPath[filesystemPath.length - 1];
+    
+    // Build the video path with filesystem prefix (keep encoded for API)
+    videoPath = `/api/videos/filesystem/${filesystemPath.join('/')}`;
+    
+    // Return to the parent directory in filesystem - decode before encoding
+    const decodedParentSegments = filesystemPath.slice(0, -1).map(segment => decodeURIComponent(segment));
+    const parentPath = decodedParentSegments.join('/');
+    returnPath = parentPath ? `/filesystem?path=${encodeURIComponent('/' + parentPath)}` : '/filesystem';
+    
+    // Display the filesystem path - decode for display
+    collectionText = decodedParentSegments.join(' / ') || 'Root';
+  } else {
+    return <div className="text-center text-red-500 p-8">Invalid video path format</div>;
+  }
 
-// Decode the video name for display
-const decodedVideoName = decodeURIComponent(videoName);
+  // Decode the video name for display
+  const decodedVideoName = decodeURIComponent(videoName);
 
   useEffect(() => {
     async function fetchAndProcessSubtitles() {
@@ -88,8 +68,8 @@ const decodedVideoName = decodeURIComponent(videoName);
           console.log("Extracting subtitles for", decodedVideoName);
           
           // First, make a call to extract subtitles (this ensures they're processed and cached)
-          // Pass the source parameter to the API
-          const extractResponse = await fetch(`/api/extract-subtitles/${path.join('/')}?source=${source}`);
+          // Note: We use 'external' source for filesystem videos
+          const extractResponse = await fetch(`/api/extract-subtitles/${path.join('/')}?source=external`);
           if (!extractResponse.ok) {
             console.warn('Subtitle extraction may have failed:', extractResponse.status);
           } else {
@@ -97,8 +77,8 @@ const decodedVideoName = decodeURIComponent(videoName);
           }
           
           // Then, fetch the extracted subtitle information
-          // Pass the source parameter to the API
-          const subtitlesResponse = await fetch(`/api/video-subtitles/${path.join('/')}?source=${source}`);
+          // Note: We use 'external' source for filesystem videos
+          const subtitlesResponse = await fetch(`/api/video-subtitles/${path.join('/')}?source=external`);
           if (subtitlesResponse.ok) {
             const data = await subtitlesResponse.json();
             console.log("Subtitle data received:", data);
@@ -124,7 +104,7 @@ const decodedVideoName = decodeURIComponent(videoName);
     }
 
     fetchAndProcessSubtitles();
-  }, [decodedVideoName, path, source]);
+  }, [decodedVideoName, path]);
 
   // Effect to handle track selection when video element is available
   useEffect(() => {
@@ -191,14 +171,14 @@ const decodedVideoName = decodeURIComponent(videoName);
               />
             </Link>
             <h1 className="text-xl font-bold ml-2 hidden sm:block">
-              {isFilesystemPath ? 'File System Video Player' : (isExternal ? 'External Video Player' : 'Video Player')}
+              File System Video Player
             </h1>
           </div>
           <Link 
             href={returnPath}
             className="text-sm text-blue-400 hover:underline"
           >
-            ← Back to {isFilesystemPath ? 'File System' : (collectionText)}
+            ← Back to File System
           </Link>
         </div>
       </header>
@@ -250,7 +230,7 @@ const decodedVideoName = decodeURIComponent(videoName);
           <div className="p-4">
             <h1 className="text-xl font-semibold mb-2">{decodedVideoName}</h1>
             <p className="text-gray-400 text-sm mb-4">
-              From: <span className="capitalize">{isFilesystemPath ? 'File System - ' + collectionText : collectionText}</span>
+              From: <span className="capitalize">File System - {collectionText}</span>
             </p>
             
             {subtitles.length > 0 && (
@@ -286,7 +266,7 @@ const decodedVideoName = decodeURIComponent(videoName);
                 href={returnPath}
                 className="px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600 transition-colors text-sm"
               >
-                Back to {isFilesystemPath ? 'File System' : 'Collection'}
+                Back to File System
               </Link>
             </div>
           </div>

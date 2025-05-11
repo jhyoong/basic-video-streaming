@@ -21,13 +21,24 @@ export default function FileSystemPage() {
   const [isHomePage, setIsHomePage] = useState(false);
   const [allowedPaths, setAllowedPaths] = useState<Array<{path: string, name: string}>>([]);
   const [error, setError] = useState<string | null>(null);
-  const [videoFilter, setVideoFilter] = useState<boolean>(false);
+  const [videoFilter, setVideoFilter] = useState<boolean>(searchParams.get('videoFilter') === 'true');
 
   useEffect(() => {
     // Update currentPath when URL parameter changes
     setCurrentPath(path);
     checkPathAccess(path);
   }, [path]);
+
+  useEffect(() => {
+    // Update URL when video filter changes
+    const params = new URLSearchParams(searchParams);
+    if (videoFilter) {
+      params.set('videoFilter', 'true');
+    } else {
+      params.delete('videoFilter');
+    }
+    router.push(`/filesystem?${params.toString()}`);
+  }, [videoFilter, searchParams, router]);
 
   const checkPathAccess = async (checkPath: string) => {
     try {
@@ -78,8 +89,8 @@ export default function FileSystemPage() {
         .split('/')
         .map(segment => encodeURIComponent(segment));
       
-      // Construct the player URL with filesystem prefix and external source
-      const playerUrl = `/player/filesystem/${pathSegments.join('/')}?source=external`;
+      // Construct the player URL with filesystem prefix
+      const playerUrl = `/player/filesystem/${pathSegments.join('/')}`;
       console.log('Redirecting to video player:', playerUrl);
       router.push(playerUrl);
     }
@@ -89,7 +100,12 @@ export default function FileSystemPage() {
   const handleNavigate = (path: string) => {
     setCurrentPath(path);
     setSelectedItem(null);
-    router.push(`/filesystem?path=${encodeURIComponent(path)}`);
+    const params = new URLSearchParams();
+    params.set('path', path);
+    if (videoFilter) {
+      params.set('videoFilter', 'true');
+    }
+    router.push(`/filesystem?${params.toString()}`);
   };
 
   const isVideoPath = currentPath.includes('videos') || currentPath.includes('Video');

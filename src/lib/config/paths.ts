@@ -9,6 +9,19 @@ export interface PathConfig {
   defaultPath: string;
 }
 
+// Load video directory paths
+const videoDirectories = [];
+
+// Add internal video directory
+const internalVideoPath = path.resolve(process.cwd(), 'public', 'videos');
+videoDirectories.push(internalVideoPath);
+
+// Add external video directory if configured
+if (process.env.EXTERNAL_VIDEOS_PATH) {
+  const externalVideoPath = path.resolve(process.env.EXTERNAL_VIDEOS_PATH);
+  videoDirectories.push(externalVideoPath);
+}
+
 // Load configuration from environment variables with sensible defaults
 export const pathConfig: PathConfig = {
   allowedBasePaths: process.env.ALLOWED_FILESYSTEM_PATHS 
@@ -16,8 +29,7 @@ export const pathConfig: PathConfig = {
     : [
         path.resolve(os.homedir(), 'documents'), 
         path.resolve(os.homedir(), 'downloads'),
-        path.resolve(process.cwd(), 'public', 'videos'), // Add video directories
-        ...(process.env.EXTERNAL_VIDEOS_PATH ? [path.resolve(process.env.EXTERNAL_VIDEOS_PATH)] : [])
+        ...videoDirectories
       ],
   maxDepth: parseInt(process.env.FILESYSTEM_MAX_DEPTH || '50'), // Increased to allow deeper paths
   enforceAllowedPaths: process.env.FILESYSTEM_ENFORCE_PATHS === 'true',
@@ -47,32 +59,21 @@ export function isPathAllowed(requestedPath: string): boolean {
  * Get all allowed base paths with their display names
  */
 export function getAllowedBasePaths(): Array<{path: string, name: string}> {
-  const basePaths = pathConfig.allowedBasePaths.map(basePath => ({
-    path: basePath,
-    name: path.basename(basePath) || basePath,
-  }));
-  
-  // Add special video paths if not already included
-  const videoPaths = [];
-  const internalVideoPath = path.resolve(process.cwd(), 'public', 'videos');
-  if (!basePaths.some(bp => bp.path === internalVideoPath)) {
-    videoPaths.push({
-      path: internalVideoPath,
-      name: 'Video Collections'
-    });
-  }
-  
-  if (process.env.EXTERNAL_VIDEOS_PATH) {
-    const externalVideoPath = path.resolve(process.env.EXTERNAL_VIDEOS_PATH);
-    if (!basePaths.some(bp => bp.path === externalVideoPath)) {
-      videoPaths.push({
-        path: externalVideoPath,
-        name: 'External Video Collections'
-      });
+  const basePaths = pathConfig.allowedBasePaths.map(basePath => {
+    // Check if this is a video directory and give it a nicer name
+    if (basePath === internalVideoPath) {
+      return { path: basePath, name: 'Video Collections' };
     }
-  }
+    if (process.env.EXTERNAL_VIDEOS_PATH && basePath === path.resolve(process.env.EXTERNAL_VIDEOS_PATH)) {
+      return { path: basePath, name: 'External Video Collections' };
+    }
+    return {
+      path: basePath,
+      name: path.basename(basePath) || basePath,
+    };
+  });
   
-  return [...basePaths, ...videoPaths];
+  return basePaths;
 }
 
 /**
@@ -151,14 +152,4 @@ export function calculateRelativeDepth(targetPath: string, basePath: string): nu
   const relative = path.relative(basePath, targetPath);
   if (relative === '') return 0;
   return relative.split(path.sep).length;
-}
-
-/**
- * Get video directories configuration
- */
-export function getVideoDirectories(): { internal: string; external?: string } {
-  return {
-    internal: path.resolve(process.cwd(), 'public', 'videos'),
-    external: process.env.EXTERNAL_VIDEOS_PATH ? path.resolve(process.env.EXTERNAL_VIDEOS_PATH) : undefined
-  };
 }
