@@ -108,6 +108,8 @@ export async function GET(request: NextRequest) {
     const flatten = searchParams.get('flatten') === 'true';
 
     console.log(`Filesystem API: Requested path: ${requestedPath}`);
+    const decodedPath = decodeURIComponent(requestedPath);
+    console.log(`Filesystem API: Decoded path: ${decodedPath}`);
 
     // Special handling for home page - always show allowed paths when accessing root
     if (requestedPath === '.' || requestedPath === '/' || requestedPath === '') {
