@@ -40,46 +40,44 @@ export default function VideoPlayer() {
   let collectionText: string;
   
   if (isFilesystemPath) {
-    // Remove 'filesystem' prefix
-    const filesystemPath = path.slice(1);
-    videoName = filesystemPath[filesystemPath.length - 1];
-    const decodedVideoName = decodeURIComponent(videoName);
-    
-    // Build the video path with filesystem prefix
-    videoPath = `/api/videos/filesystem/${filesystemPath.join('/')}?source=${source}`;
-    
-    // Return to the parent directory in filesystem
-    const parentPath = filesystemPath.slice(0, -1).join('/');
-    returnPath = parentPath ? `/filesystem?path=${encodeURIComponent('/' + parentPath)}` : '/filesystem';
-    
-    // Display the filesystem path
-    collectionText = filesystemPath.slice(0, -1).join(' / ') || 'Root';
-    
-    // We'll use the filesystem path for subtitle extraction as well
-  } else {
-    // Handle regular video paths as before
-    videoName = path[path.length - 1];
-    const decodedVideoName = decodeURIComponent(videoName);
-    
-    // Determine if we're in a main folder or subfolder
-    const folder = path[0];
-    const subfolder = path.length > 2 ? path[1] : null;
-    
-    // Build the video path
-    videoPath = `/api/videos/${path.join('/')}?source=${source}`;
-    
-    // Build the return path
-    returnPath = subfolder 
-      ? `/videos/${folder}/${subfolder}?source=${source}` 
-      : `/videos/${folder}?source=${source}`;
-    
-    // Display text for the collection
-    collectionText = subfolder 
-      ? `${decodeURIComponent(folder)} / ${decodeURIComponent(subfolder)}` 
-      : decodeURIComponent(folder);
-  }
+  // Remove 'filesystem' prefix and decode path segments
+  const filesystemPath = path.slice(1);
+  videoName = filesystemPath[filesystemPath.length - 1];
   
-  const decodedVideoName = decodeURIComponent(videoName);
+  // Build the video path with filesystem prefix (keep encoded for API)
+  videoPath = `/api/videos/filesystem/${filesystemPath.join('/')}?source=${source}`;
+  
+  // Return to the parent directory in filesystem - decode before encoding
+  const decodedParentSegments = filesystemPath.slice(0, -1).map(segment => decodeURIComponent(segment));
+  const parentPath = decodedParentSegments.join('/');
+  returnPath = parentPath ? `/filesystem?path=${encodeURIComponent('/' + parentPath)}` : '/filesystem';
+  
+  // Display the filesystem path - decode for display
+  collectionText = decodedParentSegments.join(' / ') || 'Root';
+} else {
+  // Handle regular video paths - decode path segments
+  videoName = path[path.length - 1];
+  
+  // Determine if we're in a main folder or subfolder
+  const folder = decodeURIComponent(path[0]);
+  const subfolder = path.length > 2 ? decodeURIComponent(path[1]) : null;
+  
+  // Build the video path (keep encoded for API)
+  videoPath = `/api/videos/${path.join('/')}?source=${source}`;
+  
+  // Build the return path - encode properly
+  returnPath = subfolder 
+    ? `/videos/${encodeURIComponent(folder)}/${encodeURIComponent(subfolder)}?source=${source}` 
+    : `/videos/${encodeURIComponent(folder)}?source=${source}`;
+  
+  // Display text for the collection - already decoded
+  collectionText = subfolder 
+    ? `${folder} / ${subfolder}` 
+    : folder;
+}
+
+// Decode the video name for display
+const decodedVideoName = decodeURIComponent(videoName);
 
   useEffect(() => {
     async function fetchAndProcessSubtitles() {
