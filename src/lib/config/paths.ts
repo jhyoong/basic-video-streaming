@@ -13,7 +13,12 @@ export interface PathConfig {
 export const pathConfig: PathConfig = {
   allowedBasePaths: process.env.ALLOWED_FILESYSTEM_PATHS 
     ? process.env.ALLOWED_FILESYSTEM_PATHS.split(',').map(p => p.trim()).map(p => path.resolve(p))
-    : [path.resolve(os.homedir(), 'documents'), path.resolve(os.homedir(), 'downloads')],
+    : [
+        path.resolve(os.homedir(), 'documents'), 
+        path.resolve(os.homedir(), 'downloads'),
+        path.resolve(process.cwd(), 'public', 'videos'), // Add video directories
+        ...(process.env.EXTERNAL_VIDEOS_PATH ? [path.resolve(process.env.EXTERNAL_VIDEOS_PATH)] : [])
+      ],
   maxDepth: parseInt(process.env.FILESYSTEM_MAX_DEPTH || '50'), // Increased to allow deeper paths
   enforceAllowedPaths: process.env.FILESYSTEM_ENFORCE_PATHS === 'true',
   defaultPath: process.env.FILESYSTEM_DEFAULT_PATH || os.homedir(),
@@ -42,10 +47,32 @@ export function isPathAllowed(requestedPath: string): boolean {
  * Get all allowed base paths with their display names
  */
 export function getAllowedBasePaths(): Array<{path: string, name: string}> {
-  return pathConfig.allowedBasePaths.map(basePath => ({
+  const basePaths = pathConfig.allowedBasePaths.map(basePath => ({
     path: basePath,
     name: path.basename(basePath) || basePath,
   }));
+  
+  // Add special video paths if not already included
+  const videoPaths = [];
+  const internalVideoPath = path.resolve(process.cwd(), 'public', 'videos');
+  if (!basePaths.some(bp => bp.path === internalVideoPath)) {
+    videoPaths.push({
+      path: internalVideoPath,
+      name: 'Video Collections'
+    });
+  }
+  
+  if (process.env.EXTERNAL_VIDEOS_PATH) {
+    const externalVideoPath = path.resolve(process.env.EXTERNAL_VIDEOS_PATH);
+    if (!basePaths.some(bp => bp.path === externalVideoPath)) {
+      videoPaths.push({
+        path: externalVideoPath,
+        name: 'External Video Collections'
+      });
+    }
+  }
+  
+  return [...basePaths, ...videoPaths];
 }
 
 /**
@@ -124,4 +151,14 @@ export function calculateRelativeDepth(targetPath: string, basePath: string): nu
   const relative = path.relative(basePath, targetPath);
   if (relative === '') return 0;
   return relative.split(path.sep).length;
+}
+
+/**
+ * Get video directories configuration
+ */
+export function getVideoDirectories(): { internal: string; external?: string } {
+  return {
+    internal: path.resolve(process.cwd(), 'public', 'videos'),
+    external: process.env.EXTERNAL_VIDEOS_PATH ? path.resolve(process.env.EXTERNAL_VIDEOS_PATH) : undefined
+  };
 }

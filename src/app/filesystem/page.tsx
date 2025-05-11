@@ -21,6 +21,7 @@ export default function FileSystemPage() {
   const [isHomePage, setIsHomePage] = useState(false);
   const [allowedPaths, setAllowedPaths] = useState<Array<{path: string, name: string}>>([]);
   const [error, setError] = useState<string | null>(null);
+  const [videoFilter, setVideoFilter] = useState<boolean>(false);
 
   useEffect(() => {
     // Update currentPath when URL parameter changes
@@ -91,6 +92,8 @@ export default function FileSystemPage() {
     router.push(`/filesystem?path=${encodeURIComponent(path)}`);
   };
 
+  const isVideoPath = currentPath.includes('videos') || currentPath.includes('Video');
+
   if (isHomePage) {
     return <HomePage allowedPaths={allowedPaths} />;
   }
@@ -115,14 +118,38 @@ export default function FileSystemPage() {
   return (
     <div className="max-w-6xl mx-auto p-6">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">File System Explorer</h1>
-        <button
-          onClick={() => router.push('/')}
-          className="text-blue-600 hover:text-blue-800 text-sm"
-        >
-          ← Home
-        </button>
+        <h1 className="text-2xl font-bold">
+          {isVideoPath ? 'Video Collections' : 'File System Explorer'}
+        </h1>
+        <div className="flex items-center gap-4">
+          {isVideoPath && (
+            <button
+              onClick={() => setVideoFilter(!videoFilter)}
+              className={`px-4 py-2 rounded text-sm ${
+                videoFilter
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              {videoFilter ? 'Show All Files' : 'Show Only Videos'}
+            </button>
+          )}
+          <button
+            onClick={() => router.push('/')}
+            className="text-blue-600 hover:text-blue-800 text-sm"
+          >
+            ← Back to Video Streaming
+          </button>
+        </div>
       </div>
+      
+      {isVideoPath && (
+        <div className="mb-4 p-4 bg-blue-50 rounded-lg">
+          <p className="text-sm text-blue-800">
+            📹 You're viewing video collections. Click on videos to watch them in the player.
+          </p>
+        </div>
+      )}
       
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
         <BreadcrumbNavigator
@@ -137,6 +164,7 @@ export default function FileSystemPage() {
               initialPath={currentPath}
               maxDepth={2}
               onItemClick={handleItemClick}
+              videoFilter={videoFilter}
             />
           </div>
           
@@ -154,9 +182,17 @@ export default function FileSystemPage() {
                   <p><span className="text-gray-500">Modified:</span> {new Date(selectedItem.modified).toLocaleString()}</p>
                 )}
                 {selectedItem.type === 'file' && selectedItem.extension && VIDEO_EXTENSIONS.includes(selectedItem.extension.toLowerCase()) && (
-                  <p className="text-green-600 text-sm mt-2">
-                    🎥 This video will open in the player when clicked
-                  </p>
+                  <div className="mt-4 p-3 bg-green-50 rounded">
+                    <p className="text-green-600 text-sm">
+                      🎥 This video will open in the player when clicked
+                    </p>
+                    <button
+                      onClick={() => handleItemClick(selectedItem)}
+                      className="mt-2 px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700"
+                    >
+                      Play Video
+                    </button>
+                  </div>
                 )}
               </div>
             ) : (
