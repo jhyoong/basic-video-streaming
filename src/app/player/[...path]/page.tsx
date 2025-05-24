@@ -5,6 +5,7 @@ import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useParams, useSearchParams } from 'next/navigation';
+import { LogoutButton } from '../../../components/LogoutButton';
 
 interface SubtitleTrack {
   index: number;
@@ -175,12 +176,15 @@ export default function VideoPlayer() {
               File System Video Player
             </h1>
           </div>
-          <Link 
-            href={returnPath}
-            className="text-sm text-blue-400 hover:underline"
-          >
-            ← Back to File System
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link 
+              href={returnPath}
+              className="text-sm text-blue-400 hover:underline"
+            >
+              ← Back to File System
+            </Link>
+            <LogoutButton className="text-red-400 hover:text-red-300" />
+          </div>
         </div>
       </header>
 

@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 import path from 'path';
 import fs from 'fs';
+import { config } from 'dotenv';
+config({ path: '.env.pw' });
 
 // Define the external videos path - this can be loaded from environment variables
 const externalVideosPath = process.env.EXTERNAL_VIDEOS_PATH || '';

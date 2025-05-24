@@ -42,3 +42,6 @@ next-env.d.ts
 
 # video path
 public/videos
+
+# authentication credentials
+.env.pw

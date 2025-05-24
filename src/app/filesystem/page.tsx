@@ -5,6 +5,7 @@ import React, { useState, useEffect } from 'react';
 import { FileSystemTree } from '../../components/FileSystemTree';
 import { BreadcrumbNavigator } from '../../components/BreadcrumbNavigator';
 import { HomePage } from '../../components/HomePage';
+import { LogoutButton } from '../../components/LogoutButton';
 import { FileSystemItem, FileSystemResponse } from '../api/filesystem/route';
 import { useRouter, useSearchParams } from 'next/navigation';
 
@@ -111,12 +112,22 @@ export default function FileSystemPage() {
   const isVideoPath = currentPath.includes('videos') || currentPath.includes('Video');
 
   if (isHomePage) {
-    return <HomePage allowedPaths={allowedPaths} />;
+    return (
+      <div>
+        <div className="flex justify-end p-4">
+          <LogoutButton />
+        </div>
+        <HomePage allowedPaths={allowedPaths} />
+      </div>
+    );
   }
 
   if (error) {
     return (
       <div className="max-w-6xl mx-auto p-6">
+        <div className="flex justify-end mb-4">
+          <LogoutButton />
+        </div>
         <div className="text-center py-8">
           <h1 className="text-2xl font-bold text-red-600 mb-2">Access Denied</h1>
           <p className="text-gray-600 mb-4">{error}</p>
@@ -154,8 +165,9 @@ export default function FileSystemPage() {
             onClick={() => router.push('/')}
             className="text-blue-600 hover:text-blue-800 text-sm"
           >
-            ← Back to HomePage
+            ← Back to Homepage
           </button>
+          <LogoutButton />
         </div>
       </div>
       
